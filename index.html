@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomodoro Timer — Free Online Focus Timer</title>
+<meta name="description" content="Free Pomodoro Timer with customizable work/break intervals, session counter, alarm sound, and circular progress bar. 100% client-side, no sign-up required.">
+<meta name="keywords" content="pomodoro timer, focus timer, productivity timer, work timer, 25 minute timer, pomodoro technique">
+<meta property="og:title" content="Pomodoro Timer — Free Online Focus Timer">
+<meta property="og:description" content="Boost productivity with the Pomodoro Technique. Customizable intervals, session tracking, alarm sounds.">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://maxmini0214.github.io/pomodoro-timer/">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0f23;--surface:#1a1a2e;--primary:#e94560;--primary-light:#ff6b81;--accent:#16213e;--text:#eee;--text-dim:#888;--green:#2ed573;--break-color:#1abc9c}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+h1{font-size:1.6rem;margin-bottom:6px;background:linear-gradient(135deg,var(--primary),var(--primary-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{color:var(--text-dim);font-size:.85rem;margin-bottom:28px}
+.timer-container{position:relative;width:280px;height:280px;margin-bottom:24px}
+svg.progress-ring{transform:rotate(-90deg);width:280px;height:280px}
+.progress-ring__bg{fill:none;stroke:var(--accent);stroke-width:8}
+.progress-ring__fg{fill:none;stroke:var(--primary);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .5s ease,stroke .3s}
+.timer-display{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.timer-display .time{font-size:3.6rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:2px}
+.timer-display .label{font-size:.8rem;color:var(--text-dim);margin-top:4px;text-transform:uppercase;letter-spacing:2px}
+.controls{display:flex;gap:12px;margin-bottom:20px}
+.btn{padding:12px 28px;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-light);transform:translateY(-1px)}
+.btn-secondary{background:var(--accent);color:var(--text)}
+.btn-secondary:hover{background:#1e2a45}
+.btn-reset{background:transparent;color:var(--text-dim);border:1px solid #333}
+.btn-reset:hover{border-color:var(--text-dim)}
+.stats{display:flex;gap:24px;margin-bottom:24px}
+.stat{text-align:center;background:var(--surface);padding:14px 20px;border-radius:12px;min-width:90px}
+.stat .num{font-size:1.8rem;font-weight:700;color:var(--primary)}
+.stat .lbl{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.settings{background:var(--surface);padding:20px 24px;border-radius:14px;width:100%;max-width:360px}
+.settings h3{font-size:.85rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+.setting-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.setting-row label{font-size:.9rem}
+.setting-row input{width:70px;padding:6px 10px;border:1px solid #333;border-radius:8px;background:var(--accent);color:var(--text);font-size:.9rem;text-align:center}
+.mode-tabs{display:flex;gap:8px;margin-bottom:20px}
+.mode-tab{padding:8px 18px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;border:2px solid transparent;background:var(--surface);color:var(--text-dim);transition:all .2s}
+.mode-tab.active{border-color:var(--primary);color:var(--primary)}
+.mode-tab.break-active{border-color:var(--break-color);color:var(--break-color)}
+.break-mode .progress-ring__fg{stroke:var(--break-color)}
+.break-mode .btn-primary{background:var(--break-color)}
+.break-mode .stat .num{color:var(--break-color)}
+.break-mode h1{background:linear-gradient(135deg,var(--break-color),#55efc4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+footer{margin-top:30px;color:var(--text-dim);font-size:.75rem}
+footer a{color:var(--primary);text-decoration:none}
+@media(max-width:400px){.timer-container{width:240px;height:240px}svg.progress-ring{width:240px;height:240px}.timer-display .time{font-size:2.8rem}.stats{gap:14px}.stat{padding:10px 14px;min-width:75px}}
+</style>
+</head>
+<body>
+<h1>🍅 Pomodoro Timer</h1>
+<p class="subtitle">Stay focused, be productive</p>
+
+<div class="mode-tabs">
+  <div class="mode-tab active" data-mode="work" onclick="switchMode('work')">Work</div>
+  <div class="mode-tab" data-mode="break" onclick="switchMode('break')">Break</div>
+  <div class="mode-tab" data-mode="longbreak" onclick="switchMode('longbreak')">Long Break</div>
+</div>
+
+<div class="timer-container" id="timerContainer">
+  <svg class="progress-ring" viewBox="0 0 280 280">
+    <circle class="progress-ring__bg" cx="140" cy="140" r="130"/>
+    <circle class="progress-ring__fg" id="progressFg" cx="140" cy="140" r="130"/>
+  </svg>
+  <div class="timer-display">
+    <div class="time" id="timeDisplay">25:00</div>
+    <div class="label" id="modeLabel">work</div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-primary" id="startBtn" onclick="toggleTimer()">Start</button>
+  <button class="btn btn-reset" onclick="resetTimer()">Reset</button>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="num" id="todayCount">0</div><div class="lbl">Today</div></div>
+  <div class="stat"><div class="num" id="totalCount">0</div><div class="lbl">Total</div></div>
+</div>
+
+<div class="settings">
+  <h3>⚙️ Settings</h3>
+  <div class="setting-row"><label>Work (min)</label><input type="number" id="workMin" value="25" min="1" max="120" onchange="updateSettings()"></div>
+  <div class="setting-row"><label>Break (min)</label><input type="number" id="breakMin" value="5" min="1" max="60" onchange="updateSettings()"></div>
+  <div class="setting-row"><label>Long Break (min)</label><input type="number" id="longBreakMin" value="15" min="1" max="60" onchange="updateSettings()"></div>
+</div>
+
+<footer>100% client-side · No data sent to servers · <a href="https://github.com/maxmini0214/pomodoro-timer">GitHub</a></footer>
+
+<script>
+const circumference = 2 * Math.PI * 130;
+const fg = document.getElementById('progressFg');
+fg.style.strokeDasharray = circumference;
+fg.style.strokeDashoffset = 0;
+
+let mode = 'work';
+let durations = { work: 25*60, break: 5*60, longbreak: 15*60 };
+let timeLeft = durations.work;
+let running = false;
+let interval = null;
+let audioCtx = null;
+
+function loadStats() {
+  const d = JSON.parse(localStorage.getItem('pomo_stats') || '{}');
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('todayCount').textContent = (d[today] || 0);
+  document.getElementById('totalCount').textContent = Object.values(d).reduce((a,b)=>a+b, 0);
+}
+
+function addSession() {
+  const d = JSON.parse(localStorage.getItem('pomo_stats') || '{}');
+  const today = new Date().toISOString().slice(0,10);
+  d[today] = (d[today] || 0) + 1;
+  localStorage.setItem('pomo_stats', JSON.stringify(d));
+  loadStats();
+}
+
+function updateDisplay() {
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  document.getElementById('timeDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const total = durations[mode];
+  const progress = (total - timeLeft) / total;
+  fg.style.strokeDashoffset = circumference * (1 - progress);
+  document.title = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Pomodoro Timer`;
+}
+
+function toggleTimer() {
+  if (running) { clearInterval(interval); running = false; document.getElementById('startBtn').textContent = 'Start'; return; }
+  running = true;
+  document.getElementById('startBtn').textContent = 'Pause';
+  interval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft < 0) {
+      clearInterval(interval); running = false;
+      document.getElementById('startBtn').textContent = 'Start';
+      playAlarm();
+      if (mode === 'work') { addSession(); switchMode('break'); }
+      else { switchMode('work'); }
+      return;
+    }
+    updateDisplay();
+  }, 1000);
+}
+
+function resetTimer() {
+  clearInterval(interval); running = false;
+  document.getElementById('startBtn').textContent = 'Start';
+  timeLeft = durations[mode];
+  updateDisplay();
+}
+
+function switchMode(m) {
+  clearInterval(interval); running = false;
+  document.getElementById('startBtn').textContent = 'Start';
+  mode = m; timeLeft = durations[mode];
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.classList.remove('active','break-active');
+    if (t.dataset.mode === m) t.classList.add(m === 'work' ? 'active' : 'break-active');
+  });
+  const container = document.getElementById('timerContainer').parentElement;
+  if (m === 'work') container.classList.remove('break-mode');
+  else container.classList.add('break-mode');
+  document.getElementById('modeLabel').textContent = m === 'longbreak' ? 'long break' : m;
+  updateDisplay();
+}
+
+function updateSettings() {
+  durations.work = (parseInt(document.getElementById('workMin').value) || 25) * 60;
+  durations.break = (parseInt(document.getElementById('breakMin').value) || 5) * 60;
+  durations.longbreak = (parseInt(document.getElementById('longBreakMin').value) || 15) * 60;
+  if (!running) { timeLeft = durations[mode]; updateDisplay(); }
+}
+
+function playAlarm() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [880, 0, 880, 0, 880];
+    let t = audioCtx.currentTime;
+    notes.forEach(freq => {
+      if (freq) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.25);
+      }
+      t += 0.3;
+    });
+  } catch(e) {}
+}
+
+updateDisplay(); loadStats();
+</script>
+</body>
+</html>
